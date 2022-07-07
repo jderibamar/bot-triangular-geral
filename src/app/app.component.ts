@@ -36,7 +36,7 @@ export class AppComponent implements OnInit
     ngOnInit(): void 
     {
         setInterval(() => this.gerarTabelaHTML() , 3000)
-        setInterval(() => location.reload() , 300 * 1000)
+        setInterval(() => location.reload() , 600 * 1000)
         this.loadData()
 
         this.triS.mercatoxUsdtBtc()

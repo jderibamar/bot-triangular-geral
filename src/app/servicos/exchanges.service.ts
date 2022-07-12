@@ -333,6 +333,231 @@ export class ExchangesService
       return listaFinal
    }
 
+   async ob_poloniex(par_moeda: any)
+   {
+      let api_url = await fetch('https://poloniex.com/public?command=returnOrderBook&currencyPair=' + par_moeda +'&depth=1'),
+          json = await api_url.json()
+
+      return json
+   }
+
+
+   async tickers_poloniex()
+   {
+       let api_url = await fetch('https://poloniex.com/public?command=returnTicker'),
+           json = await api_url.json(),
+
+           m_url = await fetch('https://poloniex.com/public?command=returnCurrencies'),
+           mjson = await m_url.json(),
+           moBtc = [], // MOEDAS EM BTC MONTADO
+           moUsdt = [], // MOEDAS EM USDT MONTADO
+           lb = [], // LISTA BTC
+           lu = [], // LISTA BTC / USDT
+           lbu = [], // LISTA BTC / USDT
+           t = [], // TICKERS
+           lf = [], // LISTA FINAL
+           
+
+           keys = Object.keys(mjson), // MOEDAS
+
+           k = Object.keys(json), // TICKERS
+           v: any = Object.values(json)
+
+           // MONTA ARRAY COM AS PEDRAS
+           for(let i in k)
+              t.push({ s: k[i], a: v[i].lowestAsk, b: v[i].highestBid })
+
+           // ACRESTA O MERCADO DE BTC EM TODAS AS MOEDAS
+           for(let i in keys)
+              moBtc.push({ moeda: keys[i], par_btc: 'BTC_' + keys[i] })
+           
+           // ACRESTA O MERCADO DE USDT EM TODAS AS MOEDAS
+           for(let i in keys)
+              moUsdt.push({ moeda: keys[i], par_usdt: 'USDT_' + keys[i] })
+           
+           // LISTA BTC   
+           for(let i in moBtc)
+           {
+               for(let j in k)
+               {
+                   if(moBtc[i].par_btc == k[j])
+                      lb.push({ moeda: moBtc[i].moeda, merc: 'BTC' })
+               }     
+           }     
+
+            // LISTA USDT  
+            for(let i in moUsdt)
+            {
+                for(let j in k)
+                {
+                    if(moUsdt[i].par_usdt == k[j])
+                        lu.push({ moeda: moUsdt[i].moeda, merc: 'USDT' })
+                }     
+            } 
+
+           // LISTA DE COMUNS BTC / USDT 
+           for(let i in lu)
+           {
+               for(let j in lb)
+               {
+                   if(lu[i].moeda == lb[j].moeda)
+                       lbu.push({ par_btc: 'BTC_' + lu[i].moeda, par_usdt: 'USDT_' + lu[i].moeda })
+               } 
+           }
+
+           for(let i in lbu)
+           {
+               for(let j in t)
+               {
+                   if(lbu[i].par_btc == t[j].s)
+                   {
+                       for(let k in t)
+                       {
+                           if(lbu[i].par_usdt == t[k].s)
+                           {
+                               lf.push(
+                               { 
+                                   par_btc: lbu[i].par_btc, a_btc: t[j].a, b_btc: t[j].b, 
+                                   par_usdt: lbu[i].par_usdt, a_usdt: t[k].a, b_usdt: t[k].b
+                               })
+                           }
+                       } 
+                   } 
+               } 
+           }
+
+        //    for(let i in lf)
+        //        console.log(lf[i].par_btc + ' a: ' + lf[i].a_btc + ' b: ' + lf[i].b_btc + ' -> ' +
+        //        lf[i].par_usdt + ' a_usdt: ' + lf[i].a_usdt + ' b_usdt: ' + lf[i].b_usdt) 
+
+        //    for(let i in t)   
+        //       console.log(t[i].s + ' a: ' + t[i].a + ' b: ' + t[i].b) 
+
+        //    for(let i in lb)
+        //         console.log('Moedas em BTC: ' + lb[i].moeda + ' Mercado: ' + lb[i].merc)
+
+           
+        //    for(let i in lu)
+        //        console.log('Pares USDT da POL: ' + lu[i].moeda + ' Mercado: ' + lu[i].merc)
+          
+        //    for(let i in lbu)
+        //        console.log('Pares BTC / USDT da POL: ' + lbu[i].par_btc + ' -> ' + lbu[i].par_usdt)
+               
+       return lf
+   }
+
+   async tickers_bitmart()
+   {
+       let t_url = await fetch('https://api-cloud.bitmart.com/spot/v1/ticker'),
+           json = await t_url.json(),
+           t = json.data.tickers, // TICKERS
+           btcUsdtPdVd = 0, // PDVD / PDCP
+           btcUsdtPdCp = 0, // PDVD / PDCP
+
+           m_url = await fetch('https://api-cloud.bitmart.com/spot/v1/currencies'),
+           mjson = await m_url.json(),
+           m = mjson.data.currencies, // MOEDAS
+
+           lb = [], // LISTA BTC
+           lu = [], // LISTA  USDT
+           lbu = [], // LISTA BTC / USDT
+           moBtc = [], // ACRESCENTA MERCADO DE BTC EM TODAS AS MOEDAS
+           moUsdt = [], // ACRESCENTA MERCADO DE USDT EM TODAS AS MOEDAS
+           lf = [] // LISTA FINAL
+           
+           for(let i in t)
+           {
+               if(t[i].symbol == 'BTC_USDT')
+               {
+                   btcUsdtPdVd = t[i].best_ask
+                   btcUsdtPdCp =  t[i].best_bid
+               } 
+           }
+                   
+           // ACRESTA O MERCADO DE BTC EM TODAS AS MOEDAS
+           for(let i in m)
+              moBtc.push({ moeda: m[i].id, par_btc: m[i].id + '_BTC' })
+           
+            // ACRESCENTA O MERCADO DE USDT EM TODAS AS MOEDAS
+           for(let i in m)
+              moUsdt.push({ moeda: m[i].id, par_usdt: m[i].id + '_USDT' })
+              
+           // LISTA BTC   
+           for(let i in moBtc)
+           {
+               for(let j in t)
+               {
+                   if(moBtc[i].par_btc == t[j].symbol)
+                      lb.push({ moeda: moBtc[i].moeda, merc: 'BTC' })
+               }     
+           }  
+           
+            // LISTA USDT  
+            for(let i in moUsdt)
+            {
+                for(let j in t)
+                {
+                    if(moUsdt[i].par_usdt == t[j].symbol)
+                        lu.push({ moeda: moUsdt[i].moeda, merc: 'USDT' })
+                }     
+            } 
+
+           // LISTA DE COMUNS BTC / USDT 
+           for(let i in lu)
+           {
+               for(let j in lb)
+               {
+                   if(lu[i].moeda == lb[j].moeda)
+                       lbu.push({ par_btc: lu[i].moeda + '_BTC', par_usdt: lu[i].moeda + '_USDT' })
+               } 
+           }
+
+           for(let i in lbu)
+           {
+               for(let j in t)
+               {
+                   if(lbu[i].par_btc == t[j].symbol)
+                   {
+                       for(let k in t)
+                       {
+                           if(lbu[i].par_usdt == t[k].symbol)
+                           {
+                               lf.push(
+                               { 
+                                   par_btc: lbu[i].par_btc, a_btc: t[j].best_ask, v_btcA: t[j].best_ask_size,
+                                            b_btc: t[j].best_bid, v_btcB: t[j].best_bid_size,
+                                   par_usdt: lbu[i].par_usdt, a_usdt: t[k].best_ask, v_usdtA: t[k].best_ask_size,
+                                            b_usdt: t[k].best_bid, v_usdtB: t[k].best_bid_size, 
+                                            btcUsdtPdCp: btcUsdtPdCp, btcUsdtPdVd: btcUsdtPdCp
+                               })
+                           }
+                       } 
+                   } 
+               } 
+           }
+
+        //    for(let i in lf)
+        //        console.log(lf[i].par_btc + ' a: ' + lf[i].a_btc + ' b: ' + lf[i].b_btc + ' -> ' +
+        //        lf[i].par_usdt + ' a_usdt: ' + lf[i].a_usdt + ' b_usdt: ' + lf[i].b_usdt) 
+
+        //    for(let i in t)   
+        //       console.log(t[i].s + ' a: ' + t[i].a + ' b: ' + t[i].b) 
+
+        //    for(let i in lb)
+        //         console.log('Moedas em BTC: ' + lb[i].moeda + ' Mercado: ' + lb[i].merc)
+
+           
+        //    for(let i in lu)
+        //        console.log('Pares USDT da POL: ' + lu[i].moeda + ' Mercado: ' + lu[i].merc)
+
+        // for(let i in lbu)
+        //     console.log('Pares BTC / USDT da BitMarte: ' + lbu[i].par_btc + ' -> ' + lbu[i].par_usdt)
+
+          
+               
+       return lf
+   }
+
     // async api_crex24(par_moeda: any)
     // {
     //     let api_url = `${ this.API_CREX24 }${ par_moeda }&limit=1`,

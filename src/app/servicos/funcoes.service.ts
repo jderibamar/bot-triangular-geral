@@ -84,8 +84,6 @@ export class Funcoes
                console.log(symbol + ' a: ' + custoBtcUsdt + ' b: ' +  pdCp + 
              ' lucro: '+ lucro)
          }
-         
-          
     }
     
     testeEmUsdt(symbol, pdVd, pdCp, btcUsdtPdCp)

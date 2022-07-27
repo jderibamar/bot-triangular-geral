@@ -558,6 +558,7 @@ export class ExchangesService
        return lf
    }
 
+
     // async api_crex24(par_moeda: any)
     // {
     //     let api_url = `${ this.API_CREX24 }${ par_moeda }&limit=1`,

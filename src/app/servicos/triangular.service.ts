@@ -103,123 +103,6 @@ export class TriangularServico
          return janelas
     }
 
-    async mexcUsdtBtc()
-    {
-        let listaUsdt = [],
-            obUsdt = null, // ORDERBOOK
-            obBtc = null,
-            moBase = [],
-            moedas = [],
-            jEmUsdt = [],
-            jEmBtc = [],
-            j  = [], // JANELAS DE ARBITRAGEM
-            excInfo = await this.excS.api_mexc()
-
-            for(let i = 0; i < excInfo.symbols.length; i++)
-            {
-                moedas[i] = excInfo.symbols[i].baseAsset
-            }
-
-            let btcUsdtOb = await this.excS.ob_mexc('BTCUSDT')
-
-            //LISTA USDT
-            for(let i = 0; i < excInfo.symbols.length; i++)
-            {
-               {
-                   if(excInfo.symbols[i].quoteAsset  === 'USDT')
-                   {                        
-                      listaUsdt.push(excInfo.symbols[i].baseAsset)
-                   }
-                }
-            }
-
-            //LISTA BTC
-            for(let i = 0; i < listaUsdt.length; i++)
-            {
-                for(let j = 0; j < excInfo.symbols.length; j++)
-                {
-                    if(listaUsdt[i] === excInfo.symbols[j].baseAsset && excInfo.symbols[j].quoteAsset === 'BTC')
-                    {                        
-                        moBase.push(listaUsdt[i])
-                    }
-                }
-            }
-
-            //BUSCA AS janelasMexc CASO EXISTA
-            for(let i = 0; i < moBase.length; i++)
-            {
-                let moUsdt = moBase[i] + 'USDT'
-                let moBtc = moBase[i] + 'BTC'
-
-                obUsdt = await this.excS.ob_mexc(moUsdt)
-                obBtc = await this.excS.ob_mexc(moBtc)
-
-                // console.log('Pos: ' + i + ' ' + moBtc + ' -> OB da Mexc em BTC - bids: ' + obBtc.bids[0][0])
-                // console.log('Pos: ' + i + ' ' + moUsdt + ' -> OB da Mexc em USDT - asks: ' + obUsdt.asks[0][0])
-
-                let pdCpMoBtc = obBtc.bids[0][0],
-                    volPdCpMoBtc = obBtc.bids[0][1],
-                    pdVdMoBtc = obBtc.asks[0][0],
-                    volPdVdMoBtc = obBtc.asks[0][1],
-
-                    pdCpMoUsdt = obUsdt.bids[0][0],
-                    volpdCpMoUsdt = obUsdt.bids[0][1],
-                    pdVdMoUsdt = obUsdt.asks[0][0],
-                    volPdVdMoUsdt = obUsdt.asks[0][1],
-
-                    btcUsdtPdCp =  btcUsdtOb.bids[0][0],
-                    btcUsdtVolCp = btcUsdtOb.bids[0][1],
-                    btcUsdtPdVd = btcUsdtOb.asks[0][0]
-                    // btcUsdtVolVd = btcUsdtOb.asks[0][1],
-                    // moedaCustoBtcUsdt = pdVdMoBtc * btcUsdtPdVd,
-                    // apuradoBtcUsdt = pdCpMoBtc * btcUsdtPdCp
-
-               //LUCRO COMPRANDO EM USDT 
-               jEmUsdt = this.funcS.arbitCpEmUsdt(moUsdt, pdVdMoUsdt, volPdVdMoUsdt, pdCpMoBtc, volPdCpMoBtc, btcUsdtPdCp)
-                    
-               if(jEmUsdt.length > 0)
-               {
-                    j.push(
-                    {
-                        symbol: jEmUsdt[0].symbol, exc: 'MEXC', pdVd: jEmUsdt[0].pdVd, volPdVd: jEmUsdt[0].volPdVd,
-                        pdCp: jEmUsdt[0].pdCp, volPdCp: jEmUsdt[0].volPdCp,  cpEm: 'USDT', vdEm: 'BTC', lucro: jEmUsdt[0].lucro
-                    }) 
-               }
-                   
-               //LUCRO COMPRANDO EM BTC
-               jEmBtc = this.funcS.arbitCpEmBtc(moBtc, pdVdMoBtc, volPdVdMoBtc, pdCpMoUsdt, volpdCpMoUsdt, btcUsdtPdVd)
-                
-                if(jEmBtc.length > 0)
-                {
-                    j.push(
-                    {
-                        symbol: jEmBtc[0].symbol, exc: 'MEXC', pdVd: jEmBtc[0].pdVd, volPdVd: jEmBtc[0].volPdVd,
-                        pdCp: jEmBtc[0].pdCp, volPdCp: jEmBtc[0].volPdCp,  cpEm: 'BTC', vdEm: 'USDT', lucro: jEmBtc[0].lucro
-                    }) 
-               }    
-               
-            }
-
-            if(j.length > 0)
-            {
-                for(let i in j)
-                    console.log('Compre ' + j[i].symbol + ' pdVd: ' + j[i].pdVd + ' vol: ' + j[i].volPdVd +
-                    ' pdCp: ' + j[i].pdCp + ' vol ' + j[i].volPdCp + ' lucro: ' + j[i].lucro + ' na MEXC')
-            }
-            
-        //     let jU = janelasCpEmUsdt,
-        //         jB = janelasCpEmBtc   
-        // for(let i = 0; i < jB.length; i++)
-        //     console.log('Compre ' + jB[i][0].symbol + ' por: ' + jB[i][0].pdVd + ' USDT e venda por: ' + 
-        //     jB[i][0].pdCp + ' BTC ' + ' com lucro de: ' + jB[i][0].lucro + ' na FMFW')
-        
-        // for(let i = 0; i < jU.length; i++)
-        //     console.log('Compre ' + jB[i][0].symbol + ' por: ' + jB[i][0].pdVd + ' BTC e venda por: ' + 
-        //     jB[i][0].pdCp + ' USDT ' + ' com lucro de: ' + jB[i][0].lucro + ' na FMFW')
-
-        return j
-    }
-
     async fmFwUsdtBtc()
     {
         let listaUsdt = [],
@@ -880,7 +763,7 @@ export class TriangularServico
             {
                 for(let i in j)
                     console.log('Compre ' + j[i].symbol + ' pdVd: ' + j[i].pdVd + 
-                    ' pdCp: ' + j[i].pdCp + ' lucro: ' + j[i].lucro + ' na Binance')
+                    ' pdCp: ' + j[i].pdCp + ' lucro: ' + j[i].lucro + ' na Poloniex')
             }
             
          return j
@@ -921,7 +804,7 @@ export class TriangularServico
                {
                    j.push(
                    {
-                      symbol: jEmUsdt[0].symbol, exc: 'Poloniex', pdVd: jEmUsdt[0].pdVd, volPdVd: jEmUsdt[0].volPdVd,
+                      symbol: jEmUsdt[0].symbol, exc: 'BitMart', pdVd: jEmUsdt[0].pdVd, volPdVd: jEmUsdt[0].volPdVd,
                       pdCp: jEmUsdt[0].pdCp, volPdCp: jEmUsdt[0].volPdCp, cpEm: 'USDT', vdEm: 'BTC', lucro: jEmUsdt[0].lucro
                    }) 
                }
@@ -933,7 +816,7 @@ export class TriangularServico
                 {
                     j.push(
                     {
-                        symbol: jEmBtc[0].symbol, exc: 'Poloniex', pdVd: jEmBtc[0].pdVd, volPdVd: jEmBtc[0].volPdVd,
+                        symbol: jEmBtc[0].symbol, exc: 'BitMart', pdVd: jEmBtc[0].pdVd, volPdVd: jEmBtc[0].volPdVd,
                         pdCp: jEmBtc[0].pdCp, volPdCp: jEmBtc[0].volPdCp,  cpEm: 'BTC', vdEm: 'USDT', lucro: jEmBtc[0].lucro
                     }) 
                }

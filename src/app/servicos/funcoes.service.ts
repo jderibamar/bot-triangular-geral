@@ -17,11 +17,13 @@ export class Funcoes
 
           if(lucro > percent)
           {
-            janelas.push(
-            { 
-               symbol: moUsdt, pdVd: pdVd, volPdVd: volPdVd, pdCp: pdCp, volPdCp: volPdCp,
-               lucro: lucro.toFixed(2)
-            })
+               janelas.push(
+               { 
+                  symbol: moUsdt, pdVd: pdVd, volPdVd: volPdVd, pdCp: pdCp, volPdCp: volPdCp,
+                  lucro: lucro.toFixed(2)
+               })
+
+               // console.log(moUsdt + ' função pdCp: ' + pdCp)
           }
           
        }
@@ -82,7 +84,7 @@ export class Funcoes
 
            if(lucro > 0)
                console.log(symbol + ' a: ' + custoBtcUsdt + ' b: ' +  pdCp + 
-             ' lucro: '+ lucro)
+             ' teste cp em BTC lucro: '+ lucro)
          }
     }
     

@@ -125,19 +125,72 @@ export class ExchangesService
 
     async tickers_fmfw()
     {
-       let api_url = await fetch('https://api.fmfw.io/api/3/public/ticker'),
-           json = await api_url.json(),
-           pares = [],
+        let api_url = await fetch('https://api.fmfw.io/api/3/public/ticker'),
+            json = await api_url.json(),
+            p = [], // PARES
+            lu = [],
+            lbu = [],
+            lf = [],
+            values: any = await this.values_fmfw(),
            
-           k = Object.keys(json),
-           v: any = Object.values(json)
+            k = Object.keys(json),
+            v: any = Object.values(json)
 
-           for(let i in k)
+            for(let i in k)
+            {
+               p.push({ s: k[i], b: v[i].bid, a: v[i].ask }) 
+            }
+
+
+           //LISTA USDT
+           for(let i = 0; i < values.length; i++)
            {
-               pares.push({ s: k[i], b: v[i].bid, a: v[i].ask }) 
+               {
+                  if(values[i].quote_currency  === 'USDT')
+                     lu.push(values[i].base_currency)
+               }
            }
 
-       return pares
+           //LISTA BTC
+           for(let i = 0; i < lu.length; i++)
+           {
+               for(let j = 0; j < values.length; j++)
+               {
+                   if(lu[i] === values[j].base_currency && values[j].quote_currency === 'BTC')
+                   {                        
+                       lbu.push({ par_btc: lu[i] + 'BTC',  par_usdt: lu[i] + 'USDT'})
+                   }
+               }
+           }
+
+        //    for(let i in lbu)
+        //       console.log(lbu[i].par_btc + ' -> ' + lbu[i].par_usdt)  
+
+        for(let i in lbu)
+        {
+            for(let j in p)
+            {
+                if(lbu[i].par_btc == p[j].s)
+                {
+                    for(let k in p)
+                    {
+                        if(lbu[i].par_usdt == p[k].s)
+                        {
+                            lf.push(
+                            { 
+                                par_btc: lbu[i].par_btc, a_btc: p[j].a, b_btc: p[j].b,
+                                par_usdt: lbu[i].par_usdt, a_usdt: p[k].a, b_usdt: p[k].b
+                            })
+                        }
+                    } 
+                } 
+            } 
+        }  
+
+        // for(let i in lf)
+        //     console.log(lf[i].par_btc + ' a_btc: ' + lf[i].a_btc + ' -> ' + lf[i].par_usdt + ' b_usdt ' + lf[i].b_usdt)    
+
+        return lf
     }
 
     async tickers_gate()
@@ -546,7 +599,7 @@ export class ExchangesService
                                             b_btc: t[j].best_bid, v_btcB: t[j].best_bid_size,
                                    par_usdt: lbu[i].par_usdt, a_usdt: t[k].best_ask, v_usdtA: t[k].best_ask_size,
                                             b_usdt: t[k].best_bid, v_usdtB: t[k].best_bid_size, 
-                                            btcUsdtPdCp: btcUsdtPdCp, btcUsdtPdVd: btcUsdtPdCp
+                                            btcUsdtPdCp: btcUsdtPdCp, btcUsdtPdVd: btcUsdtPdVd
                                })
                            }
                        } 
@@ -702,6 +755,127 @@ export class ExchangesService
        return lf
    }
 
+   async tickers_bigone()
+   {
+        let m_url = await fetch('https://big.one/api/v3/asset_pairs'),
+            mjson = await m_url.json(),
+            m = mjson.data, // MOEDAS
+            arrMoedas = []
+
+
+        let btcusdt_url = await fetch('https://big.one/api/v3/asset_pairs/BTC-USDT/ticker'),
+            btcusdt = await btcusdt_url.json(),
+            btcUsdtPdVd = btcusdt.data.ask.price, // PDVD / PDCP
+            btcUsdtPdCp = btcusdt.data.bid.price, // PDVD / PDCP
+
+            lb = [], // LISTA BTC
+            lu = [], // LISTA  USDT
+            lbu = [], // LISTA BTC / USDT
+            moBtc = [], // ACRESCENTA MERCADO DE BTC EM TODAS AS MOEDAS
+            moUsdt = [], // ACRESCENTA MERCADO DE USDT EM TODAS AS MOEDAS
+            lf = [] // LISTA FINAL
+           
+            // for(let i in t)
+            // {
+            //     if(t[i].symbol == 'BTC_USDT')
+            //     {
+            //         btcUsdtPdVd = t[i].best_ask
+            //         btcUsdtPdCp =  t[i].best_bid
+            //     } 
+            // }
+                   
+           // LISTA BTC   
+            for(let i in m)
+            {
+                if( m[i].quote_asset.symbol == 'BTC')
+                    lb.push(m[i].base_asset.symbol)
+            }  
+
+            for(let i in lb)
+            {
+                for(let j in m)
+                {
+                    if(lb[i] == m[j].base_asset.symbol && m[j].quote_asset.symbol == 'USDT')
+                       lbu.push({ p_b: lb[i] + '-BTC', p_u: lb[i] + '-USDT' }) 
+                }
+            }
+
+            for(let i in lbu)
+            {
+                let t_url_btc = await fetch('https://big.one/api/v3/asset_pairs/' + lbu[i].p_b + '/ticker'),
+                    t_btc = await t_url_btc.json(),
+                    a_btc = 0,
+                    A_btc = 0
+                    // b_btc = 0,
+                    // B_btc = 0
+
+                    if(t_btc.data.ask != null )
+                    {
+                        a_btc = t_btc.data.ask.price,
+                        A_btc = t_btc.data.ask.quantity
+                    }
+
+                let b_btc = t_btc.data.bid.price,
+                    B_btc = t_btc.data.bid.quantity
+                  
+                let t_url_usdt = await fetch('https://big.one/api/v3/asset_pairs/' + lbu[i].p_u + '/ticker'),
+                    t_usdt = await t_url_usdt.json(),
+                    a_usdt = t_usdt.data.ask.price,
+                    A_usdt = t_usdt.data.ask.quantity,
+                    b_usdt = t_usdt.data.bid.price,
+                    B_usdt = t_usdt.data.bid.quantity
+
+                    lf.push(
+                    { 
+                        par_btc: lbu[i].p_b, a_btc: a_btc, A_btc: A_btc, b_btc: b_btc, B_btc: B_btc,
+                        par_usdt: lbu[i].p_u, a_usdt: a_usdt, A_usdt: A_usdt, b_usdt: b_usdt, B_usdt: B_usdt, 
+                        btcUsdtPdCp: btcUsdtPdCp, btcUsdtPdVd: btcUsdtPdVd
+                    })   
+            }    
+           
+        //    for(let i in lbu)
+        //    {
+        //        for(let j in t)
+        //        {
+        //            if(lbu[i].par_btc == t[j].symbol)
+        //            {
+        //                for(let k in t)
+        //                {
+        //                    if(lbu[i].par_usdt == t[k].symbol)
+        //                    {
+        //                        lf.push(
+        //                        { 
+        //                            par_btc: lbu[i].par_btc, a_btc: t[j].best_ask, v_btcA: t[j].best_ask_size,
+        //                                     b_btc: t[j].best_bid, v_btcB: t[j].best_bid_size,
+        //                            par_usdt: lbu[i].par_usdt, a_usdt: t[k].best_ask, v_usdtA: t[k].best_ask_size,
+        //                                     b_usdt: t[k].best_bid, v_usdtB: t[k].best_bid_size, 
+        //                                     btcUsdtPdCp: btcUsdtPdCp, btcUsdtPdVd: btcUsdtPdVd
+        //                        })
+        //                    }
+        //                } 
+        //            } 
+        //        } 
+        //    }
+
+        //    for(let i in lf)
+        //        console.log(lf[i].par_btc + ' a: ' + lf[i].a_btc + ' b: ' + lf[i].b_btc + ' -> ' +
+        //        lf[i].par_usdt + ' a_usdt: ' + lf[i].a_usdt + ' b_usdt: ' + lf[i].b_usdt) 
+
+        //    for(let i in t)   
+        //       console.log(t[i].s + ' a: ' + t[i].a + ' b: ' + t[i].b) 
+
+        //    for(let i in lb)
+        //         console.log('Moedas em BTC: ' + lb[i].moeda + ' Mercado: ' + lb[i].merc)
+
+           
+        //    for(let i in lu)
+        //        console.log('Pares USDT da POL: ' + lu[i].moeda + ' Mercado: ' + lu[i].merc)
+
+        // for(let i in lbu)
+        //     console.log(lbu[i].p_b + ' -> ' + lbu[i].p_u)
+
+       return lf
+   }
 
     // async api_crex24(par_moeda: any)
     // {

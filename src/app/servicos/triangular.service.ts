@@ -3,6 +3,7 @@ import { ExchangesService } from './exchanges.service'
 import { Funcoes } from './funcoes.service'
 
 const base_ob_mercatox = 'https://mercatox.com/api/public/v1/orderbook?market_pair='
+const percent = 2
 
 @Injectable()
 export class TriangularServico
@@ -109,7 +110,7 @@ export class TriangularServico
             moBase = [],
             jEmBtc = [], // JANELAS COM USO DA FUNÇÃO
             jEmUsdt = [], // JANELAS COM USO DA FUNÇÃO
-            janelas  = [],
+            j  = [], // JANELAS
             symbols  = [],
             pb  = [], // PARES BTC
             pu  = [], // PARES USDT
@@ -123,107 +124,83 @@ export class TriangularServico
             volPdVdMoUsdt = null, 
 
             btcUsdtOb = await this.excS.ob_fmfw('BTCUSDT'),
-            tickers = await this.excS.tickers_fmfw()
+            t = await this.excS.tickers_fmfw()
 
-            //LISTA USDT
-            for(let i = 0; i < values.length; i++)
-            {
-                {
-                   if(values[i].quote_currency  === 'USDT')
-                      listaUsdt.push(values[i].base_currency)
-                }
-            }
 
-            //LISTA BTC
-            for(let i = 0; i < listaUsdt.length; i++)
-            {
-                for(let j = 0; j < values.length; j++)
-                {
-                    if(listaUsdt[i] === values[j].base_currency && values[j].quote_currency === 'BTC')
-                    {                        
-                        moBase.push(listaUsdt[i])
-                        symbols.push({ pU: listaUsdt[i] + 'USDT',  pB: listaUsdt[i] + 'BTC'})
-                    }
-                }
-            }
-
-            for(let i in symbols)
-            {
-                for(let j in tickers)
-                {
-                    if(symbols[i].pU == tickers[j].s)
-                       pu.push({ par_usdt: symbols[i].pU, b_usdt: tickers[j].b, a_usdt: tickers[j].a })
-                }
-            }
-            
-            for(let i in symbols)
-            {
-                for(let j in tickers)
-                {
-                    if(symbols[i].pB == tickers[j].s)
-                       pb.push({ par_btc: symbols[i].pB, b_btc: tickers[j].b, a_btc: tickers[j].a })      
-                }
-            }
-
-            for(let i = 0; i < pb.length; i++)
-            {
-                for(let j = 0; j < pu.length; j++)
-                {
-                    if(i == j)
-                        ba.push(
-                        { 
-                            par_usdt: pu[j].par_usdt, a_usdt: pu[j].a_usdt, b_usdt: pu[j].b_usdt,
-                            par_btc: pb[i].par_btc, a_btc: pb[i].a_btc, b_btc: pb[i].b_btc
-                        })
-                    
-                }
-            }
+            // for(let i in ba)
+            //     console.log('par_usdt: ' + ba[i].par_usdt + ' b: ' + ba[i].b_usdt)
 
             // //BUSCA AS janelasMexc CASO EXISTA
-            for(let i = 0; i < ba.length; i++)
+            for(let i = 0; i < t.length; i++)
             {
                let  btcUsdtPdCp =  btcUsdtOb.bid[0][0],
                     btcUsdtPdVd = btcUsdtOb.ask[0][0],
                     
-                    pdCpMoBtc = ba[i].b_btc,
-                    pdVdMoBtc = ba[i].a_btc,
-                    pdCpMoUsdt = ba[i].b_usdt,
-                    pdVdMoUsdt = ba[i].a_usdt
+                    pdCpMoBtc = t[i].b_btc,
+                    pdVdMoBtc = t[i].a_btc,
+                    pdCpMoUsdt = t[i].b_usdt,
+                    pdVdMoUsdt = t[i].a_usdt
+
+                    // console.log(ba[i].par_usdt + ' pdCpMoUsdt: ' + pdCpMoUsdt)
 
                //LUCRO COMPRANDO EM USDT 
-               jEmUsdt = this.funcS.arbitCpEmUsdt(ba[i].par_usdt, pdVdMoUsdt, volPdVdMoUsdt, pdCpMoBtc, volPdCpMoBtc, btcUsdtPdCp)
+               jEmUsdt = this.funcS.arbitCpEmUsdt(t[i].par_usdt, pdVdMoUsdt, volPdVdMoUsdt, pdCpMoBtc, volPdCpMoBtc, btcUsdtPdCp)
 
                if(jEmUsdt.length > 0)
                {
-                   janelas.push(
+                   j.push(
                    {
-                      symbol: jEmUsdt[0].symbol, exc: 'FMFW', pdVd: jEmUsdt[0].pdVd, volPdVd: jEmUsdt[0].volPdVd,
-                      pdCp: jEmUsdt[0].pdCp, volPdCp: jEmUsdt[0].volPdCp, cpEm: 'USDT', vdEm: 'BTC', lucro: jEmUsdt[0].lucro
+                      symbol: jEmUsdt[0].symbol, exc: 'FMFW', pdVd: jEmUsdt[0].pdVd, pdCp: jEmUsdt[0].pdCp, cpEm: 'USDT', vdEm: 'BTC',
+                      lucro: jEmUsdt[0].lucro
                    }) 
                }
-                   
+               
+
                //LUCRO COMPRANDO EM BTC
-                jEmBtc = this.funcS.arbitCpEmBtc(ba[i].par_btc, pdVdMoBtc, volPdVdMoBtc, pdCpMoUsdt, volPdCpMoUsdt, btcUsdtPdVd)
+                jEmBtc = this.funcS.arbitCpEmBtc(t[i].par_btc, pdVdMoBtc, volPdVdMoBtc, pdCpMoUsdt, volPdCpMoUsdt, btcUsdtPdVd)
                 
+                // if(pdVdMoBtc < pdCpMoUsdt && pdVdMoBtc > 0)
+                // {
+                //     let custoBtcUsdt = pdVdMoBtc * btcUsdtPdVd
+                //     console.log(t[i].par_usdt + ' pdCpMoUsdt: ' + pdCpMoUsdt + ' custoBtcUsdt: ' + custoBtcUsdt)
+
+                //     let lucro = (pdCpMoUsdt - custoBtcUsdt) / custoBtcUsdt * 100
+
+
+                //     if(lucro > percent)
+                //     {
+                //         console.log(t[i].par_usdt + ' lucro: ' + lucro + ' pdCpMoUsdt: ' + pdCpMoUsdt + ' custoBtcUsdt: ' + custoBtcUsdt)
+
+                //         j.push(
+                //         {
+                //             symbol: t[i].par_btc, exc: 'FMFW', pdVd: custoBtcUsdt, pdCp: pdCpMoUsdt, cpEm: 'BTC', vdEm: 'USDT',
+                //             lucro: lucro
+                //         })   
+                //     }
+                // }
+
                 if(jEmBtc.length > 0)
                 {
-                    janelas.push(
+                    j.push(
                     {
                         symbol: jEmBtc[0].symbol, exc: 'FMFW', pdVd: jEmBtc[0].pdVd, volPdVd: jEmBtc[0].volPdVd,
                         pdCp: jEmBtc[0].pdCp, volPdCp: jEmBtc[0].volPdCp,  cpEm: 'BTC', vdEm: 'USDT', lucro: jEmBtc[0].lucro
                     }) 
                }
 
+               this.funcS.testeEmBTC(t[i].par_btc, pdVdMoBtc, pdCpMoUsdt, btcUsdtPdVd)
             }
 
-            if(janelas.length > 0)
+            
+
+            if(j.length > 0)
             {
-                for(let i in janelas)
-                    console.log('Janelas FMFW: ' + janelas[i].symbol + ' pdVd: ' + janelas[i].pdVd + 
-                    ' pdCp: ' + janelas[i].pdCp + ' lucro: ' + janelas[i].lucro)
+                for(let i in j)
+                    console.log('Compre: ' + j[i].symbol + ' pdVd: ' + j[i].pdVd + 
+                    ' pdCp: ' + j[i].pdCp + ' lucro: ' + j[i].lucro + ' na FMFW')
             }
             
-         return janelas   
+         return j   
     }
 
     async bittrexUsdtBtc()
@@ -839,6 +816,73 @@ export class TriangularServico
             //         console.log('Compre ' + j[i].symbol + ' pdVd: ' + j[i].pdVd + 
             //         ' pdCp: ' + j[i].pdCp + ' lucro: ' + j[i].lucro + ' na Graviex')
             // }
+            
+         return j
+    }
+
+    async bigOnetUsdtBtc()
+    {
+        let jEmBtc = [], // JANELAS COM USO DA FUNÇÃO
+            jEmUsdt = [], // JANELAS COM USO DA FUNÇÃO
+            j  = [], // JANELAS
+
+            t = await this.excS.tickers_bigone() // TICKERS
+
+            //BUSCA AS janelasMexc CASO EXISTA
+            for(let i = 0; i < t.length; i++)
+            {
+               let  btcUsdtPdCp =  t[i].btcUsdtPdCp,
+                    btcUsdtPdVd = t[i].btcUsdtPdVd,
+                    
+                    pdCpMoBtc = t[i].b_btc,
+                    pdVdMoBtc = t[i].a_btc,
+                    pdCpMoUsdt = t[i].b_usdt,
+                    pdVdMoUsdt = t[i].a_usdt,
+
+                    volPdCpMoBtc = t[i].B_btc,
+                    volPdVdMoBtc = t[i].A_btc,
+        
+                    volPdCpMoUsdt = t[i].B_usdt,
+                    volPdVdMoUsdt = t[i].A_usdt
+
+               this.funcS.testeEmBTC(t[i].par_btc, pdVdMoBtc, pdCpMoUsdt, btcUsdtPdVd)
+               this.funcS.testeEmUsdt(t[i].par_usdt, pdVdMoUsdt, pdCpMoBtc, btcUsdtPdCp)
+
+            //    let custoBtcUsdt = pdVdMoBtc * btcUsdtPdVd 
+            //    console.log('custoBtcUsdt: ' + custoBtcUsdt + ' pdCpMoUsdt: ' + pdCpMoUsdt)
+
+               //LUCRO COMPRANDO EM USDT 
+               jEmUsdt = this.funcS.arbitCpEmUsdt(t[i].par_usdt, pdVdMoUsdt, volPdVdMoUsdt, pdCpMoBtc, volPdCpMoBtc, btcUsdtPdCp)
+
+               if(jEmUsdt.length > 0)
+               {
+                   j.push(
+                   {
+                      symbol: jEmUsdt[0].symbol, exc: 'BigOne', pdVd: jEmUsdt[0].pdVd, volPdVd: jEmUsdt[0].volPdVd,
+                      pdCp: jEmUsdt[0].pdCp, volPdCp: jEmUsdt[0].volPdCp, cpEm: 'USDT', vdEm: 'BTC', lucro: jEmUsdt[0].lucro
+                   }) 
+               }
+                 
+               //LUCRO COMPRANDO EM BTC
+                jEmBtc = this.funcS.arbitCpEmBtc(t[i].par_btc, pdVdMoBtc, volPdVdMoBtc, pdCpMoUsdt, volPdCpMoUsdt, btcUsdtPdVd)
+                
+                if(jEmBtc.length > 0)
+                {
+                    j.push(
+                    {
+                        symbol: jEmBtc[0].symbol, exc: 'BigOne', pdVd: jEmBtc[0].pdVd, volPdVd: jEmBtc[0].volPdVd,
+                        pdCp: jEmBtc[0].pdCp, volPdCp: jEmBtc[0].volPdCp,  cpEm: 'BTC', vdEm: 'USDT', lucro: jEmBtc[0].lucro
+                    }) 
+               }
+
+            }
+
+            if(j.length > 0)
+            {
+                for(let i in j)
+                    console.log('Compre ' + j[i].symbol + ' pdVd: ' + j[i].pdVd + 
+                    ' pdCp: ' + j[i].pdCp + ' lucro: ' + j[i].lucro + ' na BigOne')
+            }
             
          return j
     }

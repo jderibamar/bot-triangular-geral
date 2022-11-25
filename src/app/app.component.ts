@@ -39,7 +39,7 @@ export class AppComponent implements OnInit
         // setInterval(() => location.reload() , 900 * 1000)
         this.loadData()
 
-        this.triS.bigOnetUsdtBtc()
+        // this.triS.xtUsdtBtc()
     }
 
     // ngAfterViewInit() 
@@ -71,13 +71,13 @@ export class AppComponent implements OnInit
               gate = await this.triS.gateUsdtBtc(),
               poloniex = await this.triS.poloniexUsdtBtc(),
               graviex = await this.triS.graviextUsdtBtc(),
-              bigOne = await this.triS.bigOnetUsdtBtc(),
-              // azbit = await this.triS.azBitUsdtBtc(),
+              bigOne = await this.triS.bigOneUsdtBtc(),
+              xt = await this.triS.xtUsdtBtc(),
               bitMart = await this.triS.bitMartUsdtBtc()
   
           todasExcs.push
           (
-             ...fmfw, ...bittrex, ...gate, ...poloniex, ...bitMart, ...graviex, ...bigOne
+             ...fmfw, ...bittrex, ...gate, ...poloniex, ...bitMart, ...graviex, ...bigOne, ...xt
           )
   
           this.dataSource = new MatTableDataSource(todasExcs)

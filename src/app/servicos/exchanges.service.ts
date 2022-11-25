@@ -877,12 +877,74 @@ export class ExchangesService
        return lf
    }
 
-    // async api_crex24(par_moeda: any)
-    // {
-    //     let api_url = `${ this.API_CREX24 }${ par_moeda }&limit=1`,
-    //         fetch_url = await fetch(api_url),
-    //         orderbook = await fetch_url.json()
+   async tickers_xt()
+   {
+        let t = await this.tickersXT(), // TICKERS
+            p = await this.tickersXT(),
+            lbu = [],
+            btcUsdtPdVd = 0,
+            btcUsdtPdCp = 0,
+            lf = []
 
-    //         return orderbook
-    // }
+        // for(let i in t)
+        //     console.log('pares da XT: ' + t[i].s) 
+           
+
+        for(let i in p)
+        {
+            p[i].s = p[i].s.replace('_usdt', '')
+            p[i].s = p[i].s.replace('_btc', '')
+
+            lbu.push({ par_btc: p[i].s + '_btc', par_usdt: p[i].s + '_usdt' })
+            // dXt[i].s = dXt[i].s.toUpperCase()
+        }
+
+        for(let i in t)
+        {
+            if(t[i].s == 'btc_usdt')
+            {
+                btcUsdtPdVd = t[i].ap
+                btcUsdtPdCp =  t[i].bp
+            } 
+        }
+
+        // for(let i in lbu)
+        //     console.log('pares da XT: ' + lbu[i].par_btc + ' -> ' + lbu[i].par_usdt)
+        
+        for(let i in lbu)
+        {
+            for(let j in t)
+            {
+                if(lbu[i].par_btc == t[j].s && t[j].ap != null && t[j].bp != null)
+                {
+                    for(let k in t)
+                    {
+                        if(lbu[i].par_usdt == t[k].s && t[k].ap != null && t[k].bp != null)
+                        {
+                            lf.push(
+                            { 
+                               par_btc: lbu[i].par_btc, a_btc: t[j].ap, b_btc: t[j].bp, A_btc: t[j].aq, B_btc: t[j].bq, 
+                               par_usdt: lbu[i].par_usdt, a_usdt: t[k].ap, b_usdt: t[k].bp, A_usdt: t[k].aq, B_usdt: t[k].bq,
+                               btcUsdtPdVd: btcUsdtPdVd, btcUsdtPdCp: btcUsdtPdCp
+                            })
+                        }
+                    } 
+                } 
+            } 
+        }  
+
+        // for(let i in lf)
+        //     console.log(lf[i].par_btc + ' a: ' + lf[i].a_btc + ' b: ' + lf[i].b_btc + ' -> ' +
+        //     lf[i].par_usdt + ' a_usdt: ' + lf[i].a_usdt + ' b_usdt: ' + lf[i].b_usdt) 
+
+      return lf
+   }
+
+   async tickersXT()
+   {
+       let pares = await fetch('https://sapi.xt.com/v4/public/ticker/book'),
+       jsonp = await pares.json()
+       
+       return jsonp.result // TICKERS
+   }
 }
